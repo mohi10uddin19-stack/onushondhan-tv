@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin | অনুসন্ধান টিভি</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">অনুসন্ধান টিভি — Admin</div><nav><a href="index.html">সাইট দেখুন</a></nav></header>
+<main>
+<div id="loginBox" class="panel"><h1>Admin Login</h1><p>আপনার Firebase Admin Email ও Password দিয়ে লগইন করুন।</p>
+<input id="user" type="email" placeholder="Admin Email"><input id="pass" type="password" placeholder="Password"><button onclick="login()">Login</button><p id="loginMsg"></p></div>
+<div id="dash" class="hidden">
+<div class="panel"><h2>নতুন নিউজ প্রকাশ</h2>
+<input id="title" placeholder="নিউজের শিরোনাম">
+<input id="category" placeholder="ক্যাটাগরি (যেমন: বাংলাদেশ)">
+<input id="image" type="url" placeholder="ছবির URL (ঐচ্ছিক)">
+<textarea id="body" rows="10" placeholder="নিউজের বিস্তারিত লিখুন"></textarea>
+<button onclick="publish()">Publish News</button><button type="button" onclick="logout()">Logout</button><p id="pubMsg"></p></div>
+<div class="panel"><h2>প্রকাশিত নিউজ</h2><div id="adminList"></div></div>
+</div></main>
+<script src="https://www.gstatic.com/firebasejs/12.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore-compat.js"></script>
+<script src="app.js"></script></body></html>
