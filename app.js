@@ -270,9 +270,22 @@ onAuthStateChanged(auth, function (user) {
 // ================= READY =================
 
 console.log("Firebase successfully initialized");
-document.getElementById("publishBtn").addEventListener("click", function () {
-  window.publish();
-});
+
+const publishBtn = document.getElementById("publishBtn");
+
+if (publishBtn) {
+  publishBtn.addEventListener("click", function () {
+    console.log("PUBLISH BUTTON CLICKED");
+
+    if (typeof window.publish === "function") {
+      window.publish();
+    } else {
+      console.error("window.publish function পাওয়া যায়নি");
+    }
+  });
+} else {
+  console.error("publishBtn পাওয়া যায়নি");
+}
 // ================= HOME PAGE NEWS =================
 
 async function loadHomeNews() {
