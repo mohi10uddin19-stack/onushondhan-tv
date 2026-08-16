@@ -121,60 +121,102 @@ window.publish = async function () {
 
   console.log("PUBLISH FUNCTION STARTED");
 
-  if (!auth.currentUser) {
-    alert("আগে Admin Login করুন।");
-    return;
-  }
-
-  const titleBox = document.getElementById("title");
-  const categoryBox = document.getElementById("category");
-  const imageBox = document.getElementById("image");
-  const bodyBox = document.getElementById("body");
-  const message = document.getElementById("pubMsg");
-
-  const title = titleBox.value.trim();
-  const category = categoryBox.value.trim();
-  const image = imageBox.value.trim();
-  const body = bodyBox.value.trim();
-
-  console.log("TITLE:", title);
-  console.log("BODY:", body);
-
-  if (!title || !body) {
-    message.textContent = "শিরোনাম ও নিউজের লেখা দিন।";
-    message.style.color = "red";
-    return;
-  }
-
   try {
 
-    await addDoc(collection(db, "news"), {
-      title: title,
-      category: category || "সাধারণ",
-      image: image || "",
-      body: body,
-      author: auth.currentUser.email,
-      createdAt: serverTimestamp()
-    });
+    // Login check
+    const user = auth.currentUser;
 
-    message.textContent = "নিউজ সফলভাবে প্রকাশ হয়েছে!";
-    message.style.color = "green";
+    console.log("CURRENT USER:", user);
+
+    if (!user) {
+      alert("আগে Admin Login করুন।");
+      return;
+    }
+
+    const titleBox = document.getElementById("title");
+    const categoryBox = document.getElementById("category");
+    const imageBox = document.getElementById("image");
+    const bodyBox = document.getElementById("body");
+    const message = document.getElementById("pubMsg");
+
+    if (!titleBox || !categoryBox || !imageBox || !bodyBox) {
+      console.error("কোনো input পাওয়া যায়নি");
+      return;
+    }
+
+    const title = titleBox.value.trim();
+    const category = categoryBox.value.trim();
+    const image = imageBox.value.trim();
+    const body = bodyBox.value.trim();
+
+    console.log("TITLE:", title);
+    console.log("CATEGORY:", category);
+    console.log("IMAGE:", image);
+    console.log("BODY:", body);
+
+    if (!title || !body) {
+
+      if (message) {
+        message.textContent =
+          "শিরোনাম ও নিউজের লেখা দিন।";
+
+        message.style.color = "red";
+      }
+
+      return;
+    }
+
+    console.log("FIRESTORE-এ নিউজ পাঠানো হচ্ছে...");
+
+    const docRef = await addDoc(
+      collection(db, "news"),
+      {
+        title: title,
+        category: category || "সাধারণ",
+        image: image || "",
+        body: body,
+        author: user.email || "",
+        createdAt: serverTimestamp()
+      }
+    );
+
+    console.log(
+      "NEWS SUCCESSFULLY ADDED:",
+      docRef.id
+    );
+
+    if (message) {
+      message.textContent =
+        "নিউজ সফলভাবে প্রকাশ হয়েছে!";
+
+      message.style.color = "green";
+    }
 
     titleBox.value = "";
     categoryBox.value = "";
     imageBox.value = "";
     bodyBox.value = "";
 
-    loadNews();
+    await loadNews();
 
   } catch (error) {
 
-    console.error("PUBLISH ERROR:", error);
+    console.error("========== PUBLISH ERROR ==========");
+    console.error(error);
+    console.error("ERROR CODE:", error.code);
+    console.error("ERROR MESSAGE:", error.message);
 
-    message.textContent =
-      "নিউজ প্রকাশ হয়নি: " + error.message;
+    const message =
+      document.getElementById("pubMsg");
 
-    message.style.color = "red";
+    if (message) {
+
+      message.textContent =
+        "নিউজ প্রকাশ হয়নি: " +
+        error.message;
+
+      message.style.color = "red";
+    }
   }
 };
 
@@ -266,16 +308,8 @@ const publishBtn = document.getElementById("publishBtn");
 
 if (publishBtn) {
   publishBtn.addEventListener("click", function () {
-    console.log("PUBLISH BUTTON CLICKED");
-
-    if (typeof window.publish === "function") {
-      window.publish();
-    } else {
-      console.error("window.publish function পাওয়া যায়নি");
-    }
+    window.publish();
   });
-} else {
-  console.error("publishBtn পাওয়া যায়নি");
 }
 
 // ================= HOME PAGE NEWS =================
