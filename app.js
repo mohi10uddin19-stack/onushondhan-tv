@@ -273,3 +273,54 @@ console.log("Firebase successfully initialized");
 document.getElementById("publishBtn").addEventListener("click", function () {
   window.publish();
 });
+// ================= HOME PAGE NEWS =================
+
+async function loadHomeNews() {
+
+  const newsList = document.getElementById("newsList");
+
+  if (!newsList) return;
+
+  try {
+
+    const newsQuery = query(
+      collection(db, "news"),
+      orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(newsQuery);
+
+    newsList.innerHTML = "";
+
+    snapshot.forEach(function (doc) {
+
+      const news = doc.data();
+
+      const article = document.createElement("article");
+
+      article.innerHTML = `
+        <h2>${news.title || ""}</h2>
+        <p><strong>${news.category || "সাধারণ"}</strong></p>
+        ${
+          news.image
+            ? `<img src="${news.image}" alt="${news.title || "News"}" style="max-width:100%;">`
+            : ""
+        }
+        <p>${news.body || ""}</p>
+      `;
+
+      newsList.appendChild(article);
+    });
+
+  } catch (error) {
+
+    console.error("HOME NEWS ERROR:", error);
+
+    newsList.innerHTML =
+      "<p>নিউজ লোড হয়নি: " + error.message + "</p>";
+  }
+}
+
+
+// Home page চালু হলে নিউজ লোড হবে
+loadHomeNews();
