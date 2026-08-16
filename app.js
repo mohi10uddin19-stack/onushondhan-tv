@@ -269,4 +269,4 @@ onAuthStateChanged(auth, function (user) {
 
 // ================= READY =================
 
-console.log("Firebase successfully
+console.log("Firebase successfully initialized");
