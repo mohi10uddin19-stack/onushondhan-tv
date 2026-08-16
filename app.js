@@ -270,3 +270,6 @@ onAuthStateChanged(auth, function (user) {
 // ================= READY =================
 
 console.log("Firebase successfully initialized");
+document.getElementById("publishBtn").addEventListener("click", function () {
+  window.publish();
+});
