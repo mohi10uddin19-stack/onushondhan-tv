@@ -286,6 +286,7 @@ if (publishBtn) {
 } else {
   console.error("publishBtn পাওয়া যায়নি");
 }
+
 // ================= HOME PAGE NEWS =================
 
 async function loadHomeNews() {
@@ -296,33 +297,67 @@ async function loadHomeNews() {
 
   try {
 
-    const newsQuery = query(
-      collection(db, "news"),
-      orderBy("createdAt", "desc")
+    const snapshot = await getDocs(
+      collection(db, "news")
     );
 
-    const snapshot = await getDocs(newsQuery);
-
     newsList.innerHTML = "";
+
+    if (snapshot.empty) {
+      newsList.innerHTML = "<p>এখনো কোনো নিউজ প্রকাশিত হয়নি।</p>";
+      return;
+    }
+
+    const newsArray = [];
 
     snapshot.forEach(function (doc) {
 
       const news = doc.data();
 
+      newsArray.push({
+        id: doc.id,
+        ...news
+      });
+
+    });
+
+    // নতুন নিউজ আগে দেখাবে
+    newsArray.sort(function (a, b) {
+
+      const timeA = a.createdAt
+        ? a.createdAt.toMillis()
+        : 0;
+
+      const timeB = b.createdAt
+        ? b.createdAt.toMillis()
+        : 0;
+
+      return timeB - timeA;
+
+    });
+
+    newsArray.forEach(function (news) {
+
       const article = document.createElement("article");
 
       article.innerHTML = `
         <h2>${news.title || ""}</h2>
-        <p><strong>${news.category || "সাধারণ"}</strong></p>
+
+        <p>
+          <strong>${news.category || "সাধারণ"}</strong>
+        </p>
+
         ${
           news.image
             ? `<img src="${news.image}" alt="${news.title || "News"}" style="max-width:100%;">`
             : ""
         }
+
         <p>${news.body || ""}</p>
       `;
 
       newsList.appendChild(article);
+
     });
 
   } catch (error) {
