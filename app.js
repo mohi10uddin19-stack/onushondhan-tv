@@ -336,4 +336,6 @@ async function loadHomeNews() {
 
 
 // Home page চালু হলে নিউজ লোড হবে
+(auth = getAuth(app);
+db = getFirestore(app););
 loadHomeNews();
