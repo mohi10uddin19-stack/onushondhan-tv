@@ -119,59 +119,51 @@ window.logout = async function () {
 
 window.publish = async function () {
 
+  console.log("PUBLISH FUNCTION STARTED");
+
   if (!auth.currentUser) {
     alert("আগে Admin Login করুন।");
     return;
   }
 
-  const title =
-    document.getElementById("title").value.trim();
+  const titleBox = document.getElementById("title");
+  const categoryBox = document.getElementById("category");
+  const imageBox = document.getElementById("image");
+  const bodyBox = document.getElementById("body");
+  const message = document.getElementById("pubMsg");
 
-  const category =
-    document.getElementById("category").value.trim();
+  const title = titleBox.value.trim();
+  const category = categoryBox.value.trim();
+  const image = imageBox.value.trim();
+  const body = bodyBox.value.trim();
 
-  const image =
-    document.getElementById("image").value.trim();
-
-  const body =
-    document.getElementById("body").value.trim();
-
-  const message =
-    document.getElementById("pubMsg");
+  console.log("TITLE:", title);
+  console.log("BODY:", body);
 
   if (!title || !body) {
-
-    message.textContent =
-      "শিরোনাম ও নিউজের লেখা দিন।";
-
+    message.textContent = "শিরোনাম ও নিউজের লেখা দিন।";
     message.style.color = "red";
-
     return;
   }
 
   try {
 
-    await addDoc(
-      collection(db, "news"),
-      {
-        title: title,
-        category: category || "সাধারণ",
-        image: image || "",
-        body: body,
-        author: auth.currentUser.email,
-        createdAt: serverTimestamp()
-      }
-    );
+    await addDoc(collection(db, "news"), {
+      title: title,
+      category: category || "সাধারণ",
+      image: image || "",
+      body: body,
+      author: auth.currentUser.email,
+      createdAt: serverTimestamp()
+    });
 
-    message.textContent =
-      "নিউজ সফলভাবে প্রকাশ হয়েছে!";
-
+    message.textContent = "নিউজ সফলভাবে প্রকাশ হয়েছে!";
     message.style.color = "green";
 
-    document.getElementById("title").value = "";
-    document.getElementById("category").value = "";
-    document.getElementById("image").value = "";
-    document.getElementById("body").value = "";
+    titleBox.value = "";
+    categoryBox.value = "";
+    imageBox.value = "";
+    bodyBox.value = "";
 
     loadNews();
 
@@ -185,7 +177,6 @@ window.publish = async function () {
     message.style.color = "red";
   }
 };
-
 
 // ================= LOAD NEWS =================
 
