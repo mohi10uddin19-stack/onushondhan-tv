@@ -1,4 +1,5 @@
-// Firebase চালু করা
+// ================= FIREBASE =================
+
 const firebaseConfig = {
   apiKey: "AIzaSyAPP-Z3985x6e6Is2noMxQZ0JAWVILAceU",
   authDomain: "onushondhan-v.firebaseapp.com",
@@ -8,20 +9,22 @@ const firebaseConfig = {
   appId: "1:669433176030:web:bc736dad4c3926b287074f"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const firebaseAuth = firebase.auth();
+const firestoreDB = firebase.firestore();
 
 
-// ==================== LOGIN ====================
+// ================= LOGIN =================
 
-async function login() {
-  const email = document.getElementById("user").value.trim();
-  const password = document.getElementById("pass").value;
+window.login = async function () {
+
+  const emailInput = document.getElementById("user");
+  const passwordInput = document.getElementById("pass");
   const message = document.getElementById("loginMsg");
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   if (!email || !password) {
     message.textContent = "Email ও Password দিন।";
@@ -30,47 +33,57 @@ async function login() {
   }
 
   try {
-    await auth.signInWithEmailAndPassword(email, password);
 
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("dash").style.display = "block";
+    await firebaseAuth.signInWithEmailAndPassword(email, password);
 
     message.textContent = "Login সফল হয়েছে!";
     message.style.color = "green";
 
+    const loginBox = document.getElementById("loginBox");
+    const dashboard = document.getElementById("dash");
+
+    if (loginBox) loginBox.style.display = "none";
+    if (dashboard) dashboard.style.display = "block";
+
     loadAdminNews();
 
   } catch (error) {
-    console.error(error);
+
+    console.error("LOGIN ERROR:", error);
 
     message.textContent = "Login হয়নি: " + error.message;
     message.style.color = "red";
   }
-}
+};
 
 
-// ==================== LOGOUT ====================
+// ================= LOGOUT =================
 
-async function logout() {
+window.logout = async function () {
+
   try {
-    await auth.signOut();
 
-    document.getElementById("loginBox").style.display = "block";
-    document.getElementById("dash").style.display = "none";
+    await firebaseAuth.signOut();
+
+    const loginBox = document.getElementById("loginBox");
+    const dashboard = document.getElementById("dash");
+
+    if (loginBox) loginBox.style.display = "block";
+    if (dashboard) dashboard.style.display = "none";
 
   } catch (error) {
-    console.error(error);
+
+    console.error("LOGOUT ERROR:", error);
   }
-}
+};
 
 
-// ==================== NEWS PUBLISH ====================
+// ================= PUBLISH NEWS =================
 
-async function publish() {
+window.publish = async function () {
 
-  if (!auth.currentUser) {
-    document.getElementById("pubMsg").textContent =
-      "আগে Admin Login করুন।";
+  if (!firebaseAuth.currentUser) {
+    alert("আগে Admin Login করুন।");
     return;
   }
 
@@ -80,26 +93,22 @@ async function publish() {
   const body = document.getElementById("body").value.trim();
 
   if (!title || !body) {
-    document.getElementById("pubMsg").textContent =
-      "শিরোনাম ও নিউজের লেখা দিন।";
+    alert("শিরোনাম ও নিউজের লেখা দিন।");
     return;
   }
 
   try {
 
-    await db.collection("news").add({
+    await firestoreDB.collection("news").add({
       title: title,
       category: category || "সাধারণ",
       image: image || "",
       body: body,
-      author: auth.currentUser.email,
+      author: firebaseAuth.currentUser.email,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    document.getElementById("pubMsg").textContent =
-      "নিউজ সফলভাবে প্রকাশ হয়েছে!";
-
-    document.getElementById("pubMsg").style.color = "green";
+    alert("নিউজ সফলভাবে প্রকাশ হয়েছে!");
 
     document.getElementById("title").value = "";
     document.getElementById("category").value = "";
@@ -110,27 +119,23 @@ async function publish() {
 
   } catch (error) {
 
-    console.error(error);
-
-    document.getElementById("pubMsg").textContent =
-      "নিউজ প্রকাশ হয়নি: " + error.message;
-
-    document.getElementById("pubMsg").style.color = "red";
+    console.error("PUBLISH ERROR:", error);
+    alert("নিউজ প্রকাশ হয়নি: " + error.message);
   }
-}
+};
 
 
-// ==================== ADMIN NEWS LIST ====================
+// ================= ADMIN NEWS =================
 
 async function loadAdminNews() {
 
   const list = document.getElementById("adminList");
 
-  if (!list) return;
+  if (!list || !firebaseAuth.currentUser) return;
 
   try {
 
-    const snapshot = await db
+    const snapshot = await firestoreDB
       .collection("news")
       .orderBy("createdAt", "desc")
       .limit(20)
@@ -138,15 +143,11 @@ async function loadAdminNews() {
 
     list.innerHTML = "";
 
-    snapshot.forEach(function(doc) {
+    snapshot.forEach(function (doc) {
 
       const data = doc.data();
 
       const div = document.createElement("div");
-
-      div.style.padding = "10px";
-      div.style.marginBottom = "10px";
-      div.style.border = "1px solid #ddd";
 
       div.innerHTML =
         "<strong>" + (data.title || "") + "</strong>" +
@@ -158,35 +159,30 @@ async function loadAdminNews() {
 
   } catch (error) {
 
-    console.error(error);
-
-    list.textContent =
-      "নিউজ লোড হয়নি: " + error.message;
+    console.error("NEWS ERROR:", error);
   }
 }
 
 
-// ==================== LOGIN STATUS ====================
+// ================= AUTH STATUS =================
 
-auth.onAuthStateChanged(function(user) {
+firebaseAuth.onAuthStateChanged(function (user) {
 
   const loginBox = document.getElementById("loginBox");
-  const dash = document.getElementById("dash");
+  const dashboard = document.getElementById("dash");
 
-  if (!loginBox || !dash) return;
+  if (!loginBox || !dashboard) return;
 
   if (user) {
 
     loginBox.style.display = "none";
-    dash.style.display = "block";
+    dashboard.style.display = "block";
 
     loadAdminNews();
 
   } else {
 
     loginBox.style.display = "block";
-    dash.style.display = "none";
+    dashboard.style.display = "none";
   }
 });
-window.login = login;
-window.logout = logout;
