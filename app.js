@@ -188,3 +188,5 @@ auth.onAuthStateChanged(function(user) {
     dash.style.display = "none";
   }
 });
+window.login = login;
+window.logout = logout;
