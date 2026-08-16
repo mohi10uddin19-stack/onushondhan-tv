@@ -117,7 +117,7 @@ window.logout = async function () {
 
 // ================= PUBLISH NEWS =================
 
-window.publish = async function () {
+window.publish = async function () {console.log("PUBLISH FUNCTION STARTED");
 
   if (!auth.currentUser) {
     alert("আগে Admin Login করুন।");
