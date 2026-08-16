@@ -6,183 +6,239 @@ const firebaseConfig = {
   projectId: "onushondhan-v",
   storageBucket: "onushondhan-v.firebasestorage.app",
   messagingSenderId: "669433176030",
-  appId: "1:669433176030:web:bc736dad4c3926b287074f"
+  appId: "669433176030:web:bc736dad4c3926b287074f"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Firebase SDK load
+let auth;
+let db;
 
-const firebaseAuth = firebase.auth();
-const firestoreDB = firebase.firestore();
-
-
-// ================= LOGIN =================
-
-window.login = async function () {
-
-  const emailInput = document.getElementById("user");
-  const passwordInput = document.getElementById("pass");
-  const message = document.getElementById("loginMsg");
-
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  if (!email || !password) {
-    message.textContent = "Email ও Password দিন।";
-    message.style.color = "red";
-    return;
-  }
-
+async function initFirebase() {
   try {
+    const { initializeApp } =
+      await import("https://www.gstatic.com/firebasejs/12.7.1/firebase-app.js");
 
-    await firebaseAuth.signInWithEmailAndPassword(email, password);
+    const {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } = await import(
+      "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js"
+    );
 
-    message.textContent = "Login সফল হয়েছে!";
-    message.style.color = "green";
+    const {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      orderBy,
+      serverTimestamp
+    } = await import(
+      "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js"
+    );
 
-    const loginBox = document.getElementById("loginBox");
-    const dashboard = document.getElementById("dash");
+    const app = initializeApp(firebaseConfig);
 
-    if (loginBox) loginBox.style.display = "none";
-    if (dashboard) dashboard.style.display = "block";
+    auth = getAuth(app);
+    db = getFirestore(app);
 
-    loadAdminNews();
+    // Login function
+    window.login = async function () {
+      const email = document.getElementById("user").value.trim();
+      const password = document.getElementById("pass").value;
+      const msg = document.getElementById("loginMsg");
 
-  } catch (error) {
+      if (!email || !password) {
+        msg.textContent = "Email এবং Password দিন";
+        msg.style.color = "red";
+        return;
+      }
 
-    console.error("LOGIN ERROR:", error);
+      msg.textContent = "Login হচ্ছে...";
+      msg.style.color = "black";
 
-    message.textContent = "Login হয়নি: " + error.message;
-    message.style.color = "red";
-  }
-};
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
 
+        msg.textContent = "Login সফল হয়েছে!";
+        msg.style.color = "green";
 
-// ================= LOGOUT =================
+        document.getElementById("loginBox").style.display = "none";
 
-window.logout = async function () {
+        const dashboard =
+          document.getElementById("dashboard");
 
-  try {
+        if (dashboard) {
+          dashboard.style.display = "block";
+        }
 
-    await firebaseAuth.signOut();
+        loadNews();
 
-    const loginBox = document.getElementById("loginBox");
-    const dashboard = document.getElementById("dash");
+      } catch (error) {
+        console.error(error);
 
-    if (loginBox) loginBox.style.display = "block";
-    if (dashboard) dashboard.style.display = "none";
+        msg.textContent =
+          "Login হয়নি: " + error.message;
 
-  } catch (error) {
+        msg.style.color = "red";
+      }
+    };
 
-    console.error("LOGOUT ERROR:", error);
-  }
-};
+    // Logout
+    window.logout = async function () {
+      try {
+        await signOut(auth);
+        location.reload();
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
+    // Publish news
+    window.publish = async function () {
+      if (!auth.currentUser) {
+        alert("আগে Login করুন");
+        return;
+      }
 
-// ================= PUBLISH NEWS =================
+      const title =
+        document.getElementById("title").value.trim();
 
-window.publish = async function () {
+      const category =
+        document.getElementById("category").value.trim();
 
-  if (!firebaseAuth.currentUser) {
-    alert("আগে Admin Login করুন।");
-    return;
-  }
+      const image =
+        document.getElementById("image").value.trim();
 
-  const title = document.getElementById("title").value.trim();
-  const category = document.getElementById("category").value.trim();
-  const image = document.getElementById("image").value.trim();
-  const body = document.getElementById("body").value.trim();
+      const body =
+        document.getElementById("body").value.trim();
 
-  if (!title || !body) {
-    alert("শিরোনাম ও নিউজের লেখা দিন।");
-    return;
-  }
+      const msg =
+        document.getElementById("pubMsg");
 
-  try {
+      if (!title || !body) {
+        msg.textContent =
+          "Title এবং News লিখুন";
+        msg.style.color = "red";
+        return;
+      }
 
-    await firestoreDB.collection("news").add({
-      title: title,
-      category: category || "সাধারণ",
-      image: image || "",
-      body: body,
-      author: firebaseAuth.currentUser.email,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      try {
+        await addDoc(collection(db, "news"), {
+          title: title,
+          category: category,
+          image: image,
+          body: body,
+          createdAt: serverTimestamp()
+        });
+
+        msg.textContent =
+          "News সফলভাবে Publish হয়েছে!";
+        msg.style.color = "green";
+
+        document.getElementById("title").value = "";
+        document.getElementById("category").value = "";
+        document.getElementById("image").value = "";
+        document.getElementById("body").value = "";
+
+        loadNews();
+
+      } catch (error) {
+        console.error(error);
+
+        msg.textContent =
+          "Publish হয়নি: " + error.message;
+
+        msg.style.color = "red";
+      }
+    };
+
+    // Load published news
+    async function loadNews() {
+      const list =
+        document.getElementById("adminList");
+
+      if (!list) return;
+
+      try {
+        const q = query(
+          collection(db, "news"),
+          orderBy("createdAt", "desc")
+        );
+
+        const snapshot = await getDocs(q);
+
+        list.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+          const news = doc.data();
+
+          const item = document.createElement("div");
+
+          item.className = "news-item";
+
+          item.innerHTML = `
+            <h3>${news.title || ""}</h3>
+            <p>${news.category || ""}</p>
+          `;
+
+          list.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // Check login status
+    onAuthStateChanged(auth, (user) => {
+
+      const loginBox =
+        document.getElementById("loginBox");
+
+      const dashboard =
+        document.getElementById("dashboard");
+
+      if (user) {
+
+        if (loginBox)
+          loginBox.style.display = "none";
+
+        if (dashboard)
+          dashboard.style.display = "block";
+
+        loadNews();
+
+      } else {
+
+        if (loginBox)
+          loginBox.style.display = "block";
+
+        if (dashboard)
+          dashboard.style.display = "none";
+      }
     });
 
-    alert("নিউজ সফলভাবে প্রকাশ হয়েছে!");
-
-    document.getElementById("title").value = "";
-    document.getElementById("category").value = "";
-    document.getElementById("image").value = "";
-    document.getElementById("body").value = "";
-
-    loadAdminNews();
+    console.log("Firebase successfully initialized");
 
   } catch (error) {
+    console.error(
+      "Firebase initialization error:",
+      error
+    );
 
-    console.error("PUBLISH ERROR:", error);
-    alert("নিউজ প্রকাশ হয়নি: " + error.message);
-  }
-};
+    const msg =
+      document.getElementById("loginMsg");
 
+    if (msg) {
+      msg.textContent =
+        "Firebase চালু হয়নি: " + error.message;
 
-// ================= ADMIN NEWS =================
-
-async function loadAdminNews() {
-
-  const list = document.getElementById("adminList");
-
-  if (!list || !firebaseAuth.currentUser) return;
-
-  try {
-
-    const snapshot = await firestoreDB
-      .collection("news")
-      .orderBy("createdAt", "desc")
-      .limit(20)
-      .get();
-
-    list.innerHTML = "";
-
-    snapshot.forEach(function (doc) {
-
-      const data = doc.data();
-
-      const div = document.createElement("div");
-
-      div.innerHTML =
-        "<strong>" + (data.title || "") + "</strong>" +
-        "<br>" +
-        "<small>" + (data.category || "") + "</small>";
-
-      list.appendChild(div);
-    });
-
-  } catch (error) {
-
-    console.error("NEWS ERROR:", error);
+      msg.style.color = "red";
+    }
   }
 }
 
-
-// ================= AUTH STATUS =================
-
-firebaseAuth.onAuthStateChanged(function (user) {
-
-  const loginBox = document.getElementById("loginBox");
-  const dashboard = document.getElementById("dash");
-
-  if (!loginBox || !dashboard) return;
-
-  if (user) {
-
-    loginBox.style.display = "none";
-    dashboard.style.display = "block";
-
-    loadAdminNews();
-
-  } else {
-
-    loginBox.style.display = "block";
-    dashboard.style.display = "none";
-  }
-});
+initFirebase();
