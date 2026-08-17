@@ -176,7 +176,7 @@ window.publish = async function () {
         image: image || "",
         body: body,
         author: user.email || "",
-        createdAt: serverTimestamp()
+        createdAt: new Date()
       }
     );
 
