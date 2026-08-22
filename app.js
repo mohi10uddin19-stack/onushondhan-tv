@@ -125,8 +125,7 @@ window.publish = async function () {
 
   try {
 
-    // ================= LOGIN CHECK =================
-
+    // LOGIN CHECK
     const user = auth.currentUser;
 
     console.log("CURRENT USER:", user);
@@ -139,8 +138,7 @@ window.publish = async function () {
     console.log("USER EMAIL:", user.email);
 
 
-    // ================= INPUT =================
-
+    // INPUT
     const titleBox = document.getElementById("title");
     const categoryBox = document.getElementById("category");
     const imageBox = document.getElementById("image");
@@ -150,18 +148,18 @@ window.publish = async function () {
       throw new Error("News form-এর কোনো input পাওয়া যায়নি।");
     }
 
+
     const title = titleBox.value.trim();
     const category = categoryBox.value.trim();
     const image = imageBox.value.trim();
     const body = bodyBox.value.trim();
+
 
     console.log("TITLE:", title);
     console.log("CATEGORY:", category);
     console.log("IMAGE:", image);
     console.log("BODY:", body);
 
-
-    // ================= VALIDATION =================
 
     if (!title) {
       throw new Error("নিউজের শিরোনাম দিন।");
@@ -172,19 +170,13 @@ window.publish = async function () {
     }
 
 
-    // ================= MESSAGE =================
-
     if (message) {
       message.textContent = "নিউজ প্রকাশ করা হচ্ছে...";
       message.style.color = "blue";
     }
 
 
-    console.log("FIRESTORE-এ নিউজ পাঠানো হচ্ছে...");
-
-
-    // ================= FIRESTORE =================
-
+    // NEWS DATA
     const newsData = {
       title: title,
       category: category || "সাধারণ",
@@ -196,37 +188,22 @@ window.publish = async function () {
 
 
     console.log("NEWS DATA:", newsData);
+    console.log("FIRESTORE-এ নিউজ পাঠানো হচ্ছে...");
+    console.log("PROJECT:", firebaseConfig.projectId);
+    console.log("COLLECTION: news");
 
 
-    // 15 সেকেন্ডের মধ্যে উত্তর না এলে Error দেখাবে
-    const addNewsPromise = addDoc(
+    // ================================
+    // FIRESTORE ADD
+    // ================================
+
+    const docRef = await addDoc(
       collection(db, "news"),
       newsData
     );
 
-    const timeoutPromise = new Promise(function (_, reject) {
 
-      setTimeout(function () {
-
-        reject(
-          new Error(
-            "Firebase 15 সেকেন্ডেও উত্তর দেয়নি। Firestore Rules অথবা Firebase connection পরীক্ষা করুন।"
-          )
-        );
-
-      }, 15000);
-
-    });
-
-
-    const docRef = await Promise.race([
-      addNewsPromise,
-      timeoutPromise
-    ]);
-
-
-    // ================= SUCCESS =================
-
+    // SUCCESS
     console.log("=================================");
     console.log("NEWS SUCCESSFULLY ADDED!");
     console.log("DOCUMENT ID:", docRef.id);
@@ -240,22 +217,22 @@ window.publish = async function () {
     }
 
 
-    // Form পরিষ্কার
+    // FORM CLEAR
     titleBox.value = "";
     categoryBox.value = "";
     imageBox.value = "";
     bodyBox.value = "";
 
 
-    // Admin-এর প্রকাশিত নিউজ আবার লোড
+    // LOAD NEWS
     await loadNews();
 
 
   } catch (error) {
 
     console.error("=================================");
-    console.error("❌ PUBLISH ERROR");
-    console.error("ERROR:", error);
+    console.error("❌ REAL FIRESTORE ERROR");
+    console.error("ERROR OBJECT:", error);
     console.error("ERROR CODE:", error.code);
     console.error("ERROR MESSAGE:", error.message);
     console.error("=================================");
@@ -272,65 +249,14 @@ window.publish = async function () {
 
     alert(
       "নিউজ প্রকাশ হয়নি!\n\n" +
+      "Error Code: " +
+      (error.code || "N/A") +
+      "\n\n" +
       "Error: " +
       (error.message || "অজানা সমস্যা")
     );
   }
 };
-
-// ================= LOAD NEWS =================
-
-async function loadNews() {
-
-  const list =
-    document.getElementById("adminList");
-
-  if (!list) return;
-
-  try {
-
-    const newsQuery = query(
-      collection(db, "news"),
-      orderBy("createdAt", "desc")
-    );
-
-    const snapshot =
-      await getDocs(newsQuery);
-
-    list.innerHTML = "";
-
-    snapshot.forEach(function (doc) {
-
-      const data = doc.data();
-
-      const item =
-        document.createElement("div");
-
-      item.style.padding = "10px";
-      item.style.marginBottom = "10px";
-      item.style.border = "1px solid #ddd";
-
-      item.innerHTML =
-        "<strong>" +
-        (data.title || "") +
-        "</strong><br>" +
-        "<small>" +
-        (data.category || "") +
-        "</small>";
-
-      list.appendChild(item);
-    });
-
-  } catch (error) {
-
-    console.error("NEWS ERROR:", error);
-
-    list.textContent =
-      "নিউজ লোড হয়নি: " + error.message;
-  }
-}
-
-
 // ================= LOGIN STATUS =================
 
 onAuthStateChanged(auth, function (user) {
