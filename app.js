@@ -119,29 +119,35 @@ window.logout = async function () {
 
 window.publish = async function () {
 
-  console.log("PUBLISH FUNCTION STARTED");
+  console.log("========== PUBLISH START ==========");
+
+  const message = document.getElementById("pubMsg");
 
   try {
 
-    // Login check
+    // ================= LOGIN CHECK =================
+
     const user = auth.currentUser;
 
     console.log("CURRENT USER:", user);
 
     if (!user) {
-      alert("আগে Admin Login করুন।");
-      return;
+      throw new Error("Admin Login করা নেই। আগে Login করুন।");
     }
+
+    console.log("USER UID:", user.uid);
+    console.log("USER EMAIL:", user.email);
+
+
+    // ================= INPUT =================
 
     const titleBox = document.getElementById("title");
     const categoryBox = document.getElementById("category");
     const imageBox = document.getElementById("image");
     const bodyBox = document.getElementById("body");
-    const message = document.getElementById("pubMsg");
 
     if (!titleBox || !categoryBox || !imageBox || !bodyBox) {
-      console.error("কোনো input পাওয়া যায়নি");
-      return;
+      throw new Error("News form-এর কোনো input পাওয়া যায়নি।");
     }
 
     const title = titleBox.value.trim();
@@ -154,69 +160,121 @@ window.publish = async function () {
     console.log("IMAGE:", image);
     console.log("BODY:", body);
 
-    if (!title || !body) {
 
-      if (message) {
-        message.textContent =
-          "শিরোনাম ও নিউজের লেখা দিন।";
+    // ================= VALIDATION =================
 
-        message.style.color = "red";
-      }
-
-      return;
+    if (!title) {
+      throw new Error("নিউজের শিরোনাম দিন।");
     }
+
+    if (!body) {
+      throw new Error("নিউজের বিস্তারিত লেখা দিন।");
+    }
+
+
+    // ================= MESSAGE =================
+
+    if (message) {
+      message.textContent = "নিউজ প্রকাশ করা হচ্ছে...";
+      message.style.color = "blue";
+    }
+
 
     console.log("FIRESTORE-এ নিউজ পাঠানো হচ্ছে...");
 
-    const docRef = await addDoc(
+
+    // ================= FIRESTORE =================
+
+    const newsData = {
+      title: title,
+      category: category || "সাধারণ",
+      image: image || "",
+      body: body,
+      author: user.email || "",
+      createdAt: serverTimestamp()
+    };
+
+
+    console.log("NEWS DATA:", newsData);
+
+
+    // 15 সেকেন্ডের মধ্যে উত্তর না এলে Error দেখাবে
+    const addNewsPromise = addDoc(
       collection(db, "news"),
-      {
-        title: title,
-        category: category || "সাধারণ",
-        image: image || "",
-        body: body,
-        author: user.email || "",
-        createdAt: new Date()
-      }
+      newsData
     );
 
-    console.log(
-      "NEWS SUCCESSFULLY ADDED:",
-      docRef.id
-    );
+    const timeoutPromise = new Promise(function (_, reject) {
+
+      setTimeout(function () {
+
+        reject(
+          new Error(
+            "Firebase 15 সেকেন্ডেও উত্তর দেয়নি। Firestore Rules অথবা Firebase connection পরীক্ষা করুন।"
+          )
+        );
+
+      }, 15000);
+
+    });
+
+
+    const docRef = await Promise.race([
+      addNewsPromise,
+      timeoutPromise
+    ]);
+
+
+    // ================= SUCCESS =================
+
+    console.log("=================================");
+    console.log("NEWS SUCCESSFULLY ADDED!");
+    console.log("DOCUMENT ID:", docRef.id);
+    console.log("=================================");
+
 
     if (message) {
       message.textContent =
-        "নিউজ সফলভাবে প্রকাশ হয়েছে!";
-
+        "✅ নিউজ সফলভাবে প্রকাশ হয়েছে!";
       message.style.color = "green";
     }
 
+
+    // Form পরিষ্কার
     titleBox.value = "";
     categoryBox.value = "";
     imageBox.value = "";
     bodyBox.value = "";
 
+
+    // Admin-এর প্রকাশিত নিউজ আবার লোড
     await loadNews();
+
 
   } catch (error) {
 
-    console.error("========== PUBLISH ERROR ==========");
-    console.error(error);
+    console.error("=================================");
+    console.error("❌ PUBLISH ERROR");
+    console.error("ERROR:", error);
     console.error("ERROR CODE:", error.code);
     console.error("ERROR MESSAGE:", error.message);
+    console.error("=================================");
 
-    const message =
-      document.getElementById("pubMsg");
 
     if (message) {
 
       message.textContent =
-        "নিউজ প্রকাশ হয়নি: " +
-        error.message;
+        "❌ নিউজ প্রকাশ হয়নি: " +
+        (error.message || "অজানা সমস্যা");
 
       message.style.color = "red";
     }
+
+    alert(
+      "নিউজ প্রকাশ হয়নি!\n\n" +
+      "Error: " +
+      (error.message || "অজানা সমস্যা")
+    );
   }
 };
 
